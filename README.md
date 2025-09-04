@@ -47,6 +47,3 @@ It helps users check availability, book new appointments, update existing ones, 
 - Make sure Google Calendar API is enabled.  
 
 ---
-
-## 👤 Author
-Built by **Abdul Basit**.

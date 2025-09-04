@@ -1,0 +1,491 @@
+{
+  "name": "Calling Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "b3d46cb2-5c00-48e1-a517-e0b2b8239900",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        48,
+        -160
+      ],
+      "id": "7acb5466-b5c5-4f01-9479-79a72f1ba965",
+      "name": "Webhook",
+      "webhookId": "b3d46cb2-5c00-48e1-a517-e0b2b8239900"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        272,
+        -32
+      ],
+      "id": "53d09318-6c24-4bc5-9124-9e6ec4db8ad7",
+      "name": "gpt oss 120b",
+      "credentials": {
+        "groqApi": {
+          "id": "E3g2ldB1jpkhEbff",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        400,
+        -32
+      ],
+      "id": "9ffb1c64-d24f-4260-92ec-4ecd048e394f",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "EimQkEFi0rUWRsOc",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "abdulbasitoctaloop@gmail.com",
+          "mode": "list",
+          "cachedResultName": "abdulbasitoctaloop@gmail.com"
+        },
+        "options": {
+          "timeZone": {
+            "__rl": true,
+            "value": "Asia/Karachi",
+            "mode": "list",
+            "cachedResultName": "Asia/Karachi"
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        528,
+        -32
+      ],
+      "id": "23deb81d-67a0-4b26-97b7-6a906e0ff461",
+      "name": "Get availability",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "AHijyD1Wbopt2mh7",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "abdulbasitoctaloop@gmail.com",
+          "mode": "list",
+          "cachedResultName": "abdulbasitoctaloop@gmail.com"
+        },
+        "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', `Start of the appointment.`, 'string') }}",
+        "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', `End of the appointment.`, 'string') }}",
+        "additionalFields": {
+          "description": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Description', `Description of the meeting.`, 'string') }}",
+          "id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('ID', ``, 'string') }}",
+          "summary": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Summary', `The ID for the meeting and name of the client along with the phone number.`, 'string') }}",
+          "visibility": "public"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        656,
+        -32
+      ],
+      "id": "1d0bba03-392f-45a0-b6cb-6488a307abf9",
+      "name": "Create booking",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "AHijyD1Wbopt2mh7",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Here's the tool called according to which you have to take action:{{ $json.body.message.toolCalls[0].function.name }}\nName:{{ $json.body.message.toolCalls[0].function.arguments.name }}\nphone number: {{ $json.body.message.toolCalls[0].function.arguments.phone_number }}\ndate and time:{{ $json.body.message.toolCalls[0].function.arguments.preferedDateTime }}\nservice type:{{ $json.body.message.toolCalls[0].function.arguments.serviceType }}\n",
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "=## AI Appointment Agent Prompt \n\n### Description\nYou are an AI assistant connected to a chat model and two calendar tools.  \nYour only responsibility is to **check availability and book appointments.**  \nYou must follow these rules strictly.  \n\n---\n\n## Actions\n\n### Get Availability (`getAall:event`)\nCheck if the requested time is free in the calendar.  \nOnly consider events marked as **Busy**.  \n\n### Create Booking (`create event`)\nThis tool creates a new booking in the calendar.  \n\n---\n\n## Rules\n\n### Booking Rule\nWhen booking an appointment, you MUST call the **Create Booking** tool \nand provide these fields:\n- **Start**: ISO 8601 format (`YYYY-MM-DDTHH:mm:ss`)\n- **End**: ISO 8601 format (`YYYY-MM-DDTHH:mm:ss`)\n- **Summary**: include client name, phone, and service\n- **Description**: include any extra details\n\n❌ Never just say the booking is done — always call the **Create Booking** tool.  \n\n---\n\n### Availability Rules\n- If the user asks to check availability → use **Get Availability**.  \n- If the user asks to book an appointment → use **Create Booking**.  \n\n---\n\n### Respond with Availability\n- If the requested time is available → respond via webhook:  \n  **\"Yes, the requested slot is available.\"**  \n- If the requested time is not available → respond with at least **3 alternative 30-minute slots** in natural language.  \n  Example:  \n  *\"The requested time is busy. Available slots are: 11:30 AM to 12:00 PM, 2:00 PM to 2:30 PM, 3:00 PM to 3:30 PM.\"*  \n\n---\n\n### Time Zone Awareness\n- Always respect the user's time zone.  \n- Respond only in **PKT**.  \n- Never mention the timezone explicitly.  \n\n---\n\n### Communication Guidelines\n- Respond in clear natural language.  \n- Only provide availability information.  \n- Never attempt to manage updates, cancellations, or reschedules since those tools do not exist.  \n\n---\n\nYour output should always be in single line natural language.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        400,
+        -256
+      ],
+      "id": "e2d62dfc-b8fd-4b5d-aed2-50d310b57325",
+      "name": "Appointment Agent"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "59076d15-0880-42c1-99a9-9c723a4c6f35",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        48,
+        256
+      ],
+      "id": "4894f1c5-6f49-43e5-a262-f5a7a1a4cd14",
+      "name": "Webhook1",
+      "webhookId": "59076d15-0880-42c1-99a9-9c723a4c6f35"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "calendar": {
+          "__rl": true,
+          "value": "abdulbasitoctaloop@gmail.com",
+          "mode": "list",
+          "cachedResultName": "abdulbasitoctaloop@gmail.com"
+        },
+        "eventId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Event_ID', `This is the Event ID which is gotten from Calender.`, 'string') }}",
+        "options": {
+          "timeZone": {
+            "__rl": true,
+            "value": "Asia/Karachi",
+            "mode": "list",
+            "cachedResultName": "Asia/Karachi"
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        272,
+        480
+      ],
+      "id": "f544973e-949e-4c88-ae09-72b793b2fcd8",
+      "name": "Get event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "AHijyD1Wbopt2mh7",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "calendar": {
+          "__rl": true,
+          "value": "abdulbasitoctaloop@gmail.com",
+          "mode": "list",
+          "cachedResultName": "abdulbasitoctaloop@gmail.com"
+        },
+        "eventId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Event_ID', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        400,
+        480
+      ],
+      "id": "d817d788-4510-48aa-9bd0-2ca96eeca3f0",
+      "name": "Delete an event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "AHijyD1Wbopt2mh7",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "calendar": {
+          "__rl": true,
+          "value": "abdulbasitoctaloop@gmail.com",
+          "mode": "list",
+          "cachedResultName": "abdulbasitoctaloop@gmail.com"
+        },
+        "eventId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Event_ID', ``, 'string') }}",
+        "updateFields": {
+          "summary": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Summary', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        528,
+        480
+      ],
+      "id": "5925ce80-d6e4-42d5-92ac-a9444a234df7",
+      "name": "Update an event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "AHijyD1Wbopt2mh7",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Here's the tool called according to which you have to take action:{{ $json.body.message.toolCalls[0].function.name }}\n\nHere are client's details:\nName: {{ $json.body.message.toolCalls[0].function.arguments.name }}\nPhone number: {{ $json.body.message.toolCalls[0].function.arguments.phoneNumber }}\nDatetime of an existing appointment:{{ $json.body.message.toolCalls[0].function.arguments.cancelDateTime }}\nDateTime of rescheduled time:{{ $json.body.message.toolCalls[0].function.arguments.rescheduledDateTIme }}",
+        "options": {
+          "systemMessage": "=## AI Appointment Management Agent Prompt\n\n### Description\nYou are an AI assistant connected to a chat model and four calendar tools.  \nYour only responsibility is to **reschedule or cancel existing appointments.**  \nYou must follow these rules strictly.  \n\n---\n\n## Actions\n\n### Get Availability\nAlways use this tool first to retrieve the `eventId` of the appointment, based on  \nthe **patient's name, phone number, and the date/time of the existing appointment.**  \nThis `eventId` must then be used for further operations.  \n\n### Get Event\nAfter retrieving the `eventId`, use this tool to fetch and verify appointment details.  \n\n### Update Event\nUse this tool to **create a new appointment with the updated date/time.**  \nAlways confirm the new details with the user before updating.  \n\n### Delete Event\nUse this tool to remove an existing appointment once confirmed.  \n\n---\n\n## Rules\n\n### Reschedule Rule\n1. Ask the user for their **name, phone number, and the current appointment date/time.**  \n2. Use **Get Availability** to fetch the `eventId` of the existing appointment.  \n3. Use **Get Event** with the `eventId` to confirm the appointment details with the user.  \n4. Ask the user for their **new preferred date/time.**  \n5. Create the new appointment using **Update Event** with the new date/time.  \n6. After successful creation, call **Delete Event** with the old `eventId` to remove the old appointment.  \n7. Confirm the reschedule back to the user in natural language.  \n\n---\n\n### Cancel Rule\n1. Ask the user for their **name, phone number, and the current appointment date/time.**  \n2. Use **Get Availability** to fetch the `eventId` of the appointment.  \n3. Use **Get Event** with the `eventId` to confirm the appointment details with the user.  \n4. Call **Delete Event** with the `eventId` to cancel the appointment.  \n5. Confirm the cancellation back to the user in natural language.  \n\n---\n\n## Communication Guidelines\n- Always verify **name, phone number, and existing appointment time** before making changes.  \n- Confirm details clearly with the user before updating or canceling.  \n- Respond in clear, natural language.  \n- Never attempt to check availability for new bookings or create fresh appointments — your role is **only rescheduling or canceling.**  \n\nDo not ask for confirmations."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        400,
+        256
+      ],
+      "id": "84b9add1-364b-4194-b023-23aa43f8b352",
+      "name": "Cancel/Update Agent"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "abdulbasitoctaloop@gmail.com",
+          "mode": "list",
+          "cachedResultName": "abdulbasitoctaloop@gmail.com"
+        },
+        "timeMin": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('After', `This is the start of the event`, 'string') }}",
+        "timeMax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Before', `This is the end of the event which is 30 after the start time`, 'string') }}",
+        "options": {
+          "timeZone": {
+            "__rl": true,
+            "value": "Asia/Karachi",
+            "mode": "list",
+            "cachedResultName": "Asia/Karachi"
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        656,
+        480
+      ],
+      "id": "a215131a-0306-458b-9368-6d9e7937b344",
+      "name": "Get Event ID",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "AHijyD1Wbopt2mh7",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"results\": [\n    {\n      \"toolCallId\": \"{{ $('Webhook').item.json.body.message.toolCalls[0].id }}\",\n      \"result\": \"{{ $json.output }}\"\n    }\n  ]\n} ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        864,
+        256
+      ],
+      "id": "06352607-bc1d-466a-83b4-566c63d4690d",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"results\": [\n    {\n      \"toolCallId\": \"{{ $('Webhook').item.json.body.message.toolCalls[0].id }}\",\n      \"result\": \"{{ $json.output }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        864,
+        -160
+      ],
+      "id": "9255d177-319c-4b46-8911-edfd258b9343",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Appointment Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gpt oss 120b": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Appointment Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Cancel/Update Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Appointment Agent",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Get availability": {
+      "ai_tool": [
+        [
+          {
+            "node": "Appointment Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create booking": {
+      "ai_tool": [
+        [
+          {
+            "node": "Appointment Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Appointment Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Cancel/Update Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get event": {
+      "ai_tool": [
+        [
+          {
+            "node": "Cancel/Update Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete an event": {
+      "ai_tool": [
+        [
+          {
+            "node": "Cancel/Update Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update an event": {
+      "ai_tool": [
+        [
+          {
+            "node": "Cancel/Update Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancel/Update Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Event ID": {
+      "ai_tool": [
+        [
+          {
+            "node": "Cancel/Update Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "4a1a563d-4aa0-4c8a-9d63-a5b6e496ba00",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0c2c0cf8b217727cb995df939f5b2aea6a545eccb1db85cae7d9c807d91391e3"
+  },
+  "id": "46nP94toXzpkzB9O",
+  "tags": []
+}
